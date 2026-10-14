@@ -78,6 +78,48 @@ app.delete("/productos/:id", (req, res) => {
     res.json({ mensaje: "Producto eliminado correctamente" });
   });
 });
+// 5. Obtener todos los mensajes (READ)
+app.get("/mensajes", (req, res) => {
+    const sql = "SELECT * FROM mensaje ORDER BY id DESC";
+
+    conexion.query(sql, (error, resultados) => {
+        if (error) {
+            console.error("Error al consultar mensajes:", error);
+            return res.status(500).json({ mensaje: "Error al consultar los mensajes" });
+        }
+
+        res.json(resultados);
+    });
+});
+
+// 6. Crear un nuevo mensaje (CREATE)
+app.post("/mensajes", (req, res) => {
+    const { nombre, correo, mensaje } = req.body;
+
+    if (!nombre || !correo || !mensaje) {
+        return res.status(400).json({ mensaje: "Todos los campos son obligatorios" });
+    }
+
+    const sql = "INSERT INTO mensaje (nombre_completo, correo, asunto) VALUES (?, ?, ?)";
+    const valores = [nombre, correo, mensaje];
+
+    conexion.query(sql, valores, (error, resultado) => {
+        if (error) {
+            console.error("Error al guardar mensaje:", error);
+
+            if (error.code === "ER_DUP_ENTRY") {
+                return res.status(409).json({ mensaje: "Este correo ya está registrado." });
+            }
+
+            return res.status(500).json({ mensaje: "Error al guardar el mensaje" });
+        }
+
+        res.status(201).json({
+            mensaje: "Mensaje guardado correctamente",
+            id: resultado.insertId
+        });
+    });
+});
 
 // Iniciar servidor en el puerto 3000
 app.listen(3000, () => {

@@ -11,7 +11,10 @@ const btnGuardar = document.getElementById("btnGuardar");
 const btnCancelar = document.getElementById("btnCancelar");
 const tituloFormulario = document.getElementById("tituloFormulario");
 const formContacto = document.getElementById("formularioContacto");
-
+const listaMensajes = document.getElementById("listaMensajes");
+const nombreContacto = document.getElementById("nombre");
+const correoContacto = document.getElementById("correo");
+const mensajeContacto = document.getElementById("mensaje");
 // 1. Función para consultar los productos y mostrarlos en el DOM (READ)
 async function cargarProductos() {
   if (!listaProductos) return;
@@ -134,12 +137,91 @@ async function eliminarProducto(id) {
 
 // 5. Formulario de contacto (demostrativo en contacto.html)
 if (formContacto) {
-  formContacto.addEventListener("submit", (e) => {
-    e.preventDefault();
-    alert("¡Mensaje de contacto enviado con éxito!");
-    formContacto.reset();
-  });
+    formContacto.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const nombre = nombreContacto.value.trim();
+        const correo = correoContacto.value.trim();
+        const mensaje = mensajeContacto.value.trim();
+
+        try {
+            const respuesta = await fetch(`${API_URL}/mensajes`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    nombre,
+                    correo,
+                    mensaje
+                })
+            });
+
+            if (!respuesta.ok) {
+                throw new Error("No se pudo guardar el mensaje");
+            }
+
+            alert("¡Mensaje guardado correctamente!");
+            formContacto.reset();
+            cargarMensajes();
+
+        } catch (error) {
+            console.error("Error al guardar el mensaje:", error);
+            alert("Error al guardar el mensaje en la base de datos.");
+        }
+    });
+}
+
+// 6. Consultar los mensajes (READ)
+async function cargarMensajes() {
+    if (!listaMensajes) return;
+
+    try {
+        const respuesta = await fetch(`${API_URL}/mensajes`);
+
+        if (!respuesta.ok) {
+            throw new Error("Error al consultar los mensajes");
+        }
+
+        const mensajes = await respuesta.json();
+
+        listaMensajes.innerHTML = "";
+
+        if (mensajes.length === 0) {
+            listaMensajes.textContent = "No hay mensajes registrados.";
+            return;
+        }
+
+        mensajes.forEach((mensaje) => {
+            const elemento = document.createElement("div");
+            elemento.classList.add("producto");
+
+            const nombre = document.createElement("h3");
+            nombre.textContent = mensaje.nombre_completo;
+
+            const correo = document.createElement("p");
+            correo.textContent = `Correo: ${mensaje.correo}`;
+
+            const contenido = document.createElement("p");
+            contenido.textContent = `Mensaje: ${mensaje.asunto}`;
+
+            const fecha = document.createElement("p");
+            fecha.textContent = `Fecha: ${new Date(mensaje.fecha_mensaje).toLocaleString()}`;
+
+            elemento.appendChild(nombre);
+            elemento.appendChild(correo);
+            elemento.appendChild(contenido);
+            elemento.appendChild(fecha);
+
+            listaMensajes.appendChild(elemento);
+        });
+
+    } catch (error) {
+        console.error("Error al cargar los mensajes:", error);
+        listaMensajes.textContent = "No se pudieron cargar los mensajes.";
+    }
 }
 
 // Llamado inicial al cargar la página
 cargarProductos();
+cargarMensajes();
